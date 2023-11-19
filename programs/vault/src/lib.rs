@@ -4,23 +4,23 @@ declare_id!("68h7TjTaRhU5enVLNcZg3KZp76QVQRVhwDZdH6cyTD8q");
 
 #[program]
 pub mod vault {
-    use anchor_lang::system_program::{Transfer, transfer};
     use super::*;
+    use anchor_lang::system_program::{transfer, Transfer};
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        ctx.accounts.state.vault_bump = *ctx.bumps.get("vault").unwrap();
-        ctx.accounts.state.state_bump = *ctx.bumps.get("state").unwrap();
+        ctx.accounts.state.vault_bump = ctx.bumps.vault;
+        ctx.accounts.state.state_bump = ctx.bumps.state;
         Ok(())
     }
 
     pub fn deposit(ctx: Context<Payment>, amount: u64) -> Result<()> {
         let transfer_accounts = Transfer {
             from: ctx.accounts.signer.to_account_info(),
-            to: ctx.accounts.vault.to_account_info()
+            to: ctx.accounts.vault.to_account_info(),
         };
         let transfer_ctx = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
-            transfer_accounts
+            transfer_accounts,
         );
         transfer(transfer_ctx, amount)
     }
@@ -28,7 +28,7 @@ pub mod vault {
     pub fn withdraw(ctx: Context<Payment>, amount: u64) -> Result<()> {
         let transfer_accounts = Transfer {
             from: ctx.accounts.vault.to_account_info(),
-            to: ctx.accounts.signer.to_account_info()
+            to: ctx.accounts.signer.to_account_info(),
         };
 
         let seeds = &[
@@ -42,7 +42,7 @@ pub mod vault {
         let transfer_ctx = CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             transfer_accounts,
-            pda_signer
+            pda_signer,
         );
         transfer(transfer_ctx, amount)
     }
@@ -51,7 +51,7 @@ pub mod vault {
         // Empty out the account first
         let transfer_accounts = Transfer {
             from: ctx.accounts.vault.to_account_info(),
-            to: ctx.accounts.signer.to_account_info()
+            to: ctx.accounts.signer.to_account_info(),
         };
 
         let seeds = &[
@@ -65,7 +65,7 @@ pub mod vault {
         let transfer_ctx = CpiContext::new_with_signer(
             ctx.accounts.system_program.to_account_info(),
             transfer_accounts,
-            pda_signer
+            pda_signer,
         );
 
         transfer(transfer_ctx, ctx.accounts.vault.lamports())
@@ -89,7 +89,7 @@ pub struct Initialize<'info> {
         bump
     )]
     pub vault: SystemAccount<'info>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -107,7 +107,7 @@ pub struct Payment<'info> {
         bump=state.state_bump
     )]
     pub state: Account<'info, VaultState>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -127,13 +127,13 @@ pub struct Close<'info> {
         close = signer
     )]
     pub state: Account<'info, VaultState>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
 pub struct VaultState {
     pub vault_bump: u8,
-    pub state_bump: u8
+    pub state_bump: u8,
 }
 
 impl VaultState {
